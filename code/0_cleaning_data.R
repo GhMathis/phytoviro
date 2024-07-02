@@ -1,5 +1,6 @@
 library(tidyverse)
 library(readxl)
+library(vegan)
 
 main_theme = theme_bw()+
   theme(line = element_blank(), 
@@ -56,7 +57,7 @@ fungi_OTU%>%
   summarise(across(where(is.numeric), sum))%>%
   column_to_rownames("sp")-> fungi_OTU_sp
 
-## unidentified proportion
+## unidentified proportion of fungi
 fungi_OTU_sp%>%
   rownames_to_column("sp")%>%
   pivot_longer(-sp)%>%
@@ -127,7 +128,7 @@ if(!file.exists("data/data_clean/OTU_fungi.txt")){
 str(fungi_OTU_sp_grid_filter2)
 hist(log1p(apply(fungi_OTU_sp_grid_filter2, 1, sum)))  
 
-# otu table for sbm
+# otu fungi table for sbm
 fungi_OTU_sp_filter%>%
   rownames_to_column("sp")%>%
   pivot_longer(-sp)%>%
@@ -153,7 +154,7 @@ if(!file.exists("data/data_clean/OTU_fungi_for_sbm.txt")){
 }
 
 # Metadata ----
-### Metadata Quadra ----
+## Metadata Quadra ----
 read_xlsx("data/Metadata_Sample.xlsx")%>%
   filter(str_detect(Locality, "Arles"))%>%
   select(-c(Rocks, Additional_information))-> metadata_quad_cam
@@ -180,7 +181,7 @@ read.table("data/data_clean/OTU_plant_CAM.txt",header = T)%>%
 
 write.table(metadata_quad_cam, "data/data_clean/Metadata_quadra_CAM.txt")
 
-# Metadata grid (joint all metadata at grid level) ----
+## Metadata grid (joint all metadata at grid level) ----
 
 
 read_xlsx("data/Habitats_EDGG_patures.xlsx")%>%
@@ -358,22 +359,24 @@ summary(fungi_richness)
 colnames(fungi_richness)[2] = "fungi_richness"
 
  
-#merge metadata grid----
-metadata_quad_cam%>%
-  group_by(Grid_code) %>% 
-  summarise(Biomass = sum(Biomass),
-            Vegetation = 2*sum(as.numeric(Vegetation))/1800) -> biom_df
-metadata_grid_cam = read.table(file = "data/data_clean/Metadata_grid_CAM.txt")
-metadata_grid_cam%>%
-  left_join(biom_df%>%select(Vegetation, Grid_code), by = "Grid_code")-> metadata_grid_cam
-metadata_grid_cam%>%
-  left_join( plant_richness, by = "Grid_code")%>%
-  left_join( plant_H, by = "Grid_code")%>%
-  left_join( virus_richness, by = "Grid_code")%>%
-  left_join( virus_H, by = "Grid_code")%>%
-  left_join( biom_df, by = "Grid_code")%>%
-  left_join( fungi_richness, by = "Grid_code")%>%
+# merge and save metadata grid ----
+
+if(!file.exists("data/data_clean/Metadata_grid_CAM.txt")){
+  metadata_quad_cam%>%
+    group_by(Grid_code) %>% 
+    summarise(Biomass = sum(Biomass),
+              Vegetation = 2*sum(as.numeric(Vegetation))/1800) -> biom_df
+
+
   
+  metadata_grid_cam%>%
+    left_join( plant_richness, by = "Grid_code")%>%
+    left_join( plant_H, by = "Grid_code")%>%
+    left_join( virus_richness, by = "Grid_code")%>%
+    left_join( virus_H, by = "Grid_code")%>%
+    left_join( biom_df, by = "Grid_code")%>%
+    left_join( fungi_richness, by = "Grid_code")%>%
+    
   mutate(virus_richness = replace(virus_richness, is.na(virus_richness), 0),
          virus_H = replace(virus_H, is.na(virus_H), 0),
          
@@ -389,7 +392,7 @@ metadata_grid_cam%>%
          log_plant_equit = log_plant_H-log_plant_richness,
          plant_equit = plant_H/plant_richness) -> metadata_grid_cam
 
+  str(metadata_grid_cam)
 
-if(!file.exists("data/data_clean/Metadata_grid_CAM.txt")){
   write.table(metadata_grid_cam, "data/data_clean/Metadata_grid_CAM.txt")
 }

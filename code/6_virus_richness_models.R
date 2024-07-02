@@ -23,7 +23,6 @@ main_theme = theme_minimal()+
 #Metadonnees grilles----
 read.table("data/data_clean/Metadata_grid_CAM.txt", header = T) -> metadata_grid
 read.table("data/data_clean/Metadata_quadra_CAM.txt", header = T) -> metadata_quad
-#remodeler le jeu de données
 
 # Relation richesse-richesse ----
 

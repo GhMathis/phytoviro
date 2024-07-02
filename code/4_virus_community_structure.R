@@ -62,18 +62,20 @@ otu_virus_grid%>%
         panel.border = element_rect(color = "black",  fill = NA))
 
 # SBM virus ----
-sbm_virus <-otu_virus_grid%>%
-  as.matrix() %>%
-  estimateBipartiteSBM(
-    model = 'poisson', 
-    dimLabels = c(row = "Virus", col = "Grids"))
 
 if(!any(colnames(metadata_grid) %in% "sbm_virus")){
+  sbm_virus <-otu_virus_grid%>%
+    as.matrix() %>%
+    estimateBipartiteSBM(
+      model = 'poisson', 
+      dimLabels = c(row = "Virus", col = "Grids"))
+  
   metadata_grid%>%
     left_join(data.frame(sbm_virus = sbm_virus$memberships$Grids,
-                         Grid_code = colnames(otu_virus_grid)), by ="Grid_code")%>%
-    write.table("data/data_clean/Metadata_grid_CAM.txt")
-}
+                         Grid_code = colnames(otu_virus_grid)), by ="Grid_code")->metadata_grid
+  metadata_grid %>% write.table("data/data_clean/Metadata_grid_CAM.txt")
+} 
+
 ## aluvial plot ----
 B <-
   as.data.frame(

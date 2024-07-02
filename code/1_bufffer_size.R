@@ -102,12 +102,11 @@ metadata_grid%>%
   st_cast(to = "POLYGON") -> limit_map
 
 soil_occup_crop = st_crop(x = soil_occup, y =limit_map)
+if(!file.exists("outputs/crop_shapefile.shp")){
+  st_write(soil_occup_crop, "outputs/crop_shapefile.shp")}
 
 ggplot(limit_map)+
   geom_sf()
-
-
-
 
 col_landscape =brewer.pal(5, "Set2")[c(4,2,1,3,5)]
 

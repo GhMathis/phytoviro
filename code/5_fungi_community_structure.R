@@ -32,20 +32,22 @@ metadata_grid %>%
 
 # SBM ----
 
-fungi_otu_sbm%>%
-  log1p()%>%
-  t()%>%
-  plotMyMatrix(dimLabels = c("Grids", "Fungi"), plotOptions = list(rowNames = T,colNames = F))+
-  theme(element_text(angle = 90, vjust = 1, hjust = 1, size = 0.1, face="italic"),
-        strip.text.x = element_text(colour = "gray", size=15, face ="italic"),
-        strip.text.y  = element_text(colour = "gray", size=15, face ="italic"),
-        strip.background = element_rect(fill="white"),
-        panel.border = element_rect(color = "black",  fill = NA))
 
 if(file.exists("outputs/sbm_fungi_grid.Rdata")){
   load("outputs/sbm_fungi_grid.Rdata")
   
 }else{
+  fungi_otu_sbm%>%
+    log1p()%>%
+    t()%>%
+    plotMyMatrix(dimLabels = c("Grids", "Fungi"), plotOptions = list(rowNames = T,colNames = F))+
+    theme(element_text(angle = 90, vjust = 1, hjust = 1, size = 0.1, face="italic"),
+          strip.text.x = element_text(colour = "gray", size=15, face ="italic"),
+          strip.text.y  = element_text(colour = "gray", size=15, face ="italic"),
+          strip.background = element_rect(fill="white"),
+          panel.border = element_rect(color = "black",  fill = NA))
+  
+  
   fungi_otu_sbm%>%
     log1p()%>%
     estimateBipartiteSBM(

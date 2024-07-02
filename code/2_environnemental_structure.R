@@ -80,6 +80,7 @@ metadata_grid_standard%>%
          dep_oxy_num)%>%t() -> soil_standard_zscore 
 
 #### SBM soil
+par(mfrow =c(1,1))
 soil_standard_rank%>%
   as.matrix() %>%
   estimateBipartiteSBM(
