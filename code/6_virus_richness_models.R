@@ -204,15 +204,15 @@ mean(metadata_grid$log_biomass) -sd(metadata_grid$log_biomass)
 interact_plot(best_model, pred = log_plant_H, modx = log_biomass,
               interval = F, plot.points = T, data = metadata_grid, partial.residuals = T,
               point.size = 5, 
-              legend.main = "Biomasse fixée (log)",
+              legend.main = "Fixed biomass (log)",
               modx.labels = c("- 1 Sd. (4.0)",
-                              "Moyenne (4.6) ",
+                              "Mean (4.6) ",
                               " + 1 Sd.(5.1)")) -> interaction1
 
 plot_m1_biom_rich = interaction1+
   scale_color_viridis(discrete=F, option="plasma")+
-  labs(x = "Hétérogénéité du couvert végétal (log)", y = "Richesse virale (log)",
-       col = "Biomasse (log)")+
+  labs(x = "Plant cover heterogeneity (log)", y = "Viral richness (log)",
+       col = "Biomass(log)")+
   main_theme
 
 plot_m1_biom_rich
@@ -235,11 +235,11 @@ str(interaction1_landscape[[1]])
 plot_m1_landscape = interaction1_landscape +
   # annotate("text", y = 3.9,x=  c(1,2,3,4), label = c("a", "b", "a", "b"),
   #           size =5)+
-  scale_x_discrete(labels=  c("Cultivés dominant\n + Anthropisés",
-                              "Naturels non Humide\n dominant",
-                              "Mixtes", 
-                              "Naturels Humide\n dominant"))+
-  labs(x = "Classification du paysage", y = "Richesse virale (log)")+
+  scale_x_discrete(labels= c("Cultivated\n dominant",
+                             "Natural non-wet\n dominant",
+                             "Mixed\n land use", 
+                             "Natural wet\n dominant"))+
+  labs(x = "Land use classification", y = "Viral richness (log)")+
   scale_y_continuous(limits = c(0,4))+
   main_theme
 

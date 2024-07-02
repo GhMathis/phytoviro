@@ -109,7 +109,7 @@ if(!file.exists("data/shapefiles/crop_shapefile.shp")){
 ggplot(limit_map)+
   geom_sf()
 
-col_landscape =brewer.pal(5, "Set2")[c(4,2,1,3,5)]
+
 
 ggplot() +
   geom_sf(data= soil_occup,col = "gray", fill = "white") +
@@ -118,6 +118,7 @@ ggplot() +
   theme_void() +
   theme(legend.position = "none")
 
+col_landscape =brewer.pal(5, "Set2")[c(4,2,1,3,5)]
 ggplot(soil_occup_crop)+
   geom_sf(col = "gray",alpha = 0.6,aes(fill = lib) )+
   geom_point(data = metadata_grid,aes(X,Y),fill = "black",  cex = 5, alpha = 0.3, shape = 21 )+

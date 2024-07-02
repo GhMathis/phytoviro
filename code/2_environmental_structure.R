@@ -57,7 +57,7 @@ metadata_grid%>%
                   dep_oxy_num ),  ~decostand(., method = "standardize")[,1]),
          across(c(natural_landscape, cultivated, artificial,
                   non_emitting, wetland),~logit(.)))%>%
-  filter(!str_detect(Grid_code, "22_CAM_15")) -> metadata_grid_standard
+  filter(!str_detect(Grid_code, "22_CAM_15")) -> metadata_grid_standard # warning messages from the logit => normal don't worry
 #metadata_grid_standard%>%ggpairs
 
 # Soil cluster ----
@@ -167,7 +167,6 @@ landscp_only%>%
   t()%>%
   as.data.frame()%>%
   rownames_to_column("landscp")%>%
-  
   mutate(landscp = c("Naturels secs", "Cultivés", "Anthropisés", 
                      "Non emmeteurs", "Naturels humides"))%>%
   column_to_rownames("landscp")%>%
@@ -187,7 +186,10 @@ landscp_only%>%
 ggpairs(landscp_only)
 
 #clustering
-PCA_landscape = PCA(landscp_only,scale.unit = F)
+landscp_only_named = landscp_only
+colnames(landscp_only_named) = c("Antropized", "Cultivated", "Natural non-wet",
+                                 "No propagules emitter", "Natural\n wet")
+PCA_landscape = PCA(landscp_only_named,scale.unit = F)
 HCPC_landscape =PCA_landscape%>%
   HCPC(-1)
 PCA_landscape$call
@@ -195,7 +197,9 @@ PCA_landscape$call
 clust_landscp = HCPC_landscape$data.clust$clust
 
 fviz_pca_biplot(PCA_landscape,col.ind = as.factor(HCPC_landscape$data.clust$clust))+
-  scale_colour_manual(values = c(brewer.pal(4, "Set1")))
+  scale_colour_manual(values = c(brewer.pal(4, "Set1")))+
+  labs(col = "Land use\n classification", shape =   "Land use\n classification")+
+  main_theme
 
 ## landscape groups profiles
 metadata_grid%>%
@@ -207,16 +211,13 @@ metadata_grid%>%
   facet_wrap(~clust_landscp) +
   geom_col(aes(x = Grid_code,y =landscp_val, fill = landscp_name)) +
   scale_fill_manual(values = brewer.pal(5, "Set2")[c(4,2,1,3,5)],
-                    labels = c("Antropisés", "Cultivés", "Naturels non humide",
-                               "Non emmeteur de propagules", "Naturel humide")) +
-  labs(colour = "Grid cluster", fill ="Types d'occupation des sols", x =NULL, y = NULL)+
+                    labels =  c("Antropized", "Cultivated", "Natural non-wet",
+                                "No propagules emitter", "Natural wet")) +
   main_theme+
   theme(axis.text.x = element_text(colour = "black", size=6,angle = 90, vjust= 1,
                                    hjust = 1))+
-  labs(x = "Grilles", y = "Portion paysages",fill = "Types de paysages")
+  labs(x = "Grids", y = "Percentage of landscape", fill = "Landscape types")
   
-
-position_stack
 # land_use (agricultural usages)----
 
 metadata_grid_standard%>%
@@ -275,29 +276,24 @@ alluvial(freq_df[, c(1, 2, 3)],
                          freq_df$sbm_soil == 3 ~ col_clust[3],
                          .default = col_clust[4]))
 
-metadata_grid
-metadata_grid_standard%>%
-  mutate(clust_landscp = clust_landscp,
-         clust_land_use = clust_land_use,
-         sbm_soil = sbm_soil)%>%
-  select(clust_landscp, clust_land_use,
-         sbm_soil, Grid_code)-> grp_df
-
 if(any(colnames(metadata_grid)%in%c("clust_landscp", "clust_land_use", "sbm_soil"))){
   cat("Metadata already contain classifications")
 }else{
   metadata_grid%>%
-    left_join(grp_df, by = "Grid_code") -> metadata_grid
+    mutate(clust_landscp = clust_landscp,
+           clust_land_use = clust_land_use,
+           sbm_soil = sbm_soil)-> metadata_grid
     write.table(metadata_grid, file = "data/data_clean/Metadata_grid_CAM.txt")
 }
-#write.table(grp_df, "data/data_clean/Metadata_grid_grp_env.txt")
-
+metadata_grid%>%
+  mutate(clust_landscp = as.factor(clust_landscp),
+         clust_land_use = as.factor(clust_land_use),
+         sbm_soil = as.factor(sbm_soil)) -> metadata_grid
 
 # map of groups ----
 st_read("data/shapefiles/crop_shapefile.shp") -> soil_occup_crop
 metadata_grid%>%
   dplyr::select(X,Y,Grid_code)%>%
-  left_join(grp_df, by ="Grid_code") %>%
   st_as_sf(coords = c("X", "Y"), crs = 4326) %>%
   st_transform(grid_pos_metadata, crs = st_crs(soil_occup_crop))%>%
   mutate(X = as.numeric(st_coordinates(geometry)[, 1]),
@@ -331,17 +327,18 @@ ggplot(soil_occup_crop)+
              cex = 6, alpha = 0.7, shape = 21 )+
   #geom_text_repel(data = metadata_grid,aes(X,Y, label = 1:41),  cex = 3.5,
   #                box.padding = 0.5)+
-  labs(fill = "Classification occupation des Sols")+
+  labs(fill = "Land use classification")+
   scale_fill_brewer(palette = "Pastel1",
-                    labels = c("Cultivés dominant + Anthropisés",
-                               "Naturels non Humide dominant",
-                               "Naturels dominants + Non Emmeteurs", 
-                               "Naturels Humide dominant")) +
+                    labels = c("Cultivated dominant",
+                               "Natural non-wet dominant",
+                               "Mixed land use", 
+                               "Natural wet dominant")) +
   theme_void()+
   theme(legend.title = element_text(colour = "black", size=20,
                                     hjust =0.5),
         legend.text = element_text(colour = "black", size=16))
-
+c("Antropized", "Cultivated", "Natural non-wet",
+  "No propagules emitter", "Natural wet")
 ## Agricultural usages ----
 ggplot(soil_occup_crop)+
   geom_sf(col = "gray", fill = "white")+
