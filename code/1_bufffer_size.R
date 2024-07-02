@@ -102,8 +102,9 @@ metadata_grid%>%
   st_cast(to = "POLYGON") -> limit_map
 
 soil_occup_crop = st_crop(x = soil_occup, y =limit_map)
-if(!file.exists("outputs/crop_shapefile.shp")){
-  st_write(soil_occup_crop, "outputs/crop_shapefile.shp")}
+if(!file.exists("data/shapefiles/crop_shapefile.shp")){
+  st_write(soil_occup_crop, "data/shapefiles/crop_shapefile.shp")
+  }
 
 ggplot(limit_map)+
   geom_sf()

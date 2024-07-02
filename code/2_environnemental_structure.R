@@ -294,7 +294,7 @@ if(any(colnames(metadata_grid)%in%c("clust_landscp", "clust_land_use", "sbm_soil
 
 
 # map of groups ----
-st_read("outputs/crop_shapefile.shp") -> soil_occup_crop
+st_read("data/shapefiles/crop_shapefile.shp") -> soil_occup_crop
 metadata_grid%>%
   dplyr::select(X,Y,Grid_code)%>%
   left_join(grp_df, by ="Grid_code") %>%

@@ -405,7 +405,7 @@ for(i in 1:7){
 library(sf)
 library(ggspatial) 
 
-st_read("outputs/crop_shapefile.shp") -> soil_occup_crop
+st_read("data/shapefiles/crop_shapefile.shp") -> soil_occup_crop
 
 metadata_grid%>%
   dplyr::select(X,Y,Grid_code)%>%
