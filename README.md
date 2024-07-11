@@ -22,6 +22,10 @@ Contain all scripts. All script can be run independently
 
 -   `7_fungi_richness_models` same but for fungi
 
+-   `8_virus_replicat_exploration.Rmd` data exploration quadra replicates for virus 
+
+-   `functions_modified.R` some functions used in other script
+
 ### data :
 
 Contain all the raw data that I've used
