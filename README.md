@@ -85,7 +85,7 @@ Contains rearranged and cleaned data (mostly from `0_cleaning_data`)
     -   `Biomass` : Biomass sum across 9 quadra for each grid (g)
     -   `Vegetation` : Vegetation cover proportion across 9 quadra for each grid
     -   `fungi_richness`
-    -   `plant_richness2` : $`plant_richness`^2$
+    -   `plant_richness2` : `plant_richness`² 
     -   `p_richness_class5` : 5 classes of richness
     -   `p_richness_class2` : 2 classes of richness
     -   `log_virus_richness`
@@ -108,6 +108,8 @@ Contains rearranged and cleaned data (mostly from `0_cleaning_data`)
     -   `clust_smb_grid_plant` : Plant community classification (with SBM)
     -   `sbm_virus` : Virus community classification (with SBM)
     -   `sbm_fungi` : Fungi community classification (with SBM)
+    
+-    `Metadata_quadra_CAM.txt` : Metadata at quadra level
 
 -   `OTU_fungi.txt` : Community matrix for fungi at grid level
 
