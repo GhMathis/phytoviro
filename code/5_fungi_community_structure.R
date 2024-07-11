@@ -84,12 +84,12 @@ fungi_otu_sbm[fungi_id$id,grid_id$id]%>%
 
 
 str(metadata_grid)
-if (!any(colnames(metadata_grid) %in% c("sbm_fungi"))){
+if (!any(colnames(metadata_grid) %in% c("sbm_fungi"))){ #add the column only if it is not present in the df (avoid duplicated column)
   metadata_grid%>%
     left_join(data.frame(sbm_fungi = sbm_fungi_grid$memberships$Grid,
                        Grid_code = str_replace_all(colnames(fungi_otu_sbm),
                                               "-","_")), by = "Grid_code") -> metadata_grid
-  write.table(metadata_grid, file = "data/data_clean/metadata_grid.txt")
+  write.table(metadata_grid, file = "data/data_clean/Metadata_grid_CAM.txt")
   }
 
 ## aluvial plot ----

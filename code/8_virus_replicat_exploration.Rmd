@@ -1,0 +1,396 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-07-09"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages and data
+
+```{r}
+# Packages ----
+library(readxl)
+library(tidyverse)
+library(iNEXT)
+library(sbm)
+
+main_theme = theme_bw()+
+  theme(line = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        panel.border = element_blank(),
+        axis.ticks =  element_line(colour = "black"),
+        axis.text.x = element_text(colour = "black", size=8, angle = 90),
+        axis.text.y = element_text(colour = "black", size=22),
+        legend.title = element_text(colour = "black", size=20,
+                                    hjust =0.5),
+        legend.text = element_text(colour = "black", size=18),
+        axis.title= element_text(size=28),
+        strip.text = element_text(colour = "black", size=15, face ="italic"))
+
+# Import and format data ----
+read_xlsx("data/S1_Analyse_20CAM.xlsx")%>%
+  dplyr::select(Host_code, Species) %>%
+  distinct() %>% 
+  mutate(Presence = 1) %>% 
+  distinct()%>% 
+  pivot_wider(names_from = Host_code, values_from = Presence, values_fill = 0)%>%
+  filter(!is.na(Species))%>%
+  column_to_rownames("Species")%>%
+  t()%>%as.data.frame()%>%
+  rownames_to_column("Host_code")-> otu_virus
+
+```
+
+# Analyse richess basique
+
+## Setup data
+
+```{r}
+otu_virus%>%
+  reframe(Host_code = Host_code,
+    richness = rowSums(across(where(is.numeric))),
+    quadra_code =str_extract(Host_code, ".._CAM_...."),
+    Grid_code =str_extract(Host_code, ".._CAM_.."))%>%
+    group_by(quadra_code)%>%
+  mutate(richness_med = median(richness))%>%
+  ungroup()-> richness_df
+richness_df%>%
+  group_by(quadra_code)%>%
+  summarise(richness_med = median(richness))%>%
+  arrange(richness_med)%>%pull(quadra_code) -> order_quadra
+```
+
+##visualisation
+
+### Richess par quadra
+
+```{r}
+richness_df%>%
+  mutate(quadra_code = factor(quadra_code, levels = order_quadra))%>%
+  ggplot()+
+  geom_boxplot(aes(quadra_code, richness), outliers = F)+
+  geom_jitter(aes(quadra_code, richness),width = 0.1, height = 0.1)+
+  main_theme
+  
+```
+
+### Richess par quadra regroupé en fonction des grilles
+
+```{r}
+richness_df%>%
+  mutate(quadra_code = factor(quadra_code, levels = order_quadra))%>%
+  ggplot()+
+  facet_wrap(~Grid_code)+
+  geom_boxplot(aes(quadra_code, richness), outliers = F)+
+  geom_jitter(aes(quadra_code, richness),width = 0.1, height = 0.05)+
+  main_theme
+```
+
+La variance de richesse virale augment quand la richesse virale augmente au niveaux des  grilles
+```{r}
+# variance par grille
+richness_df%>%group_by(Grid_code)%>%
+  summarise(richness_var_by_grid = var(richness),
+            richness_med_by_grid = median(richness))%>%
+  ggplot()+
+  geom_point(aes(richness_med_by_grid, richness_var_by_grid, col = Grid_code))+
+    labs(x = "Rich. médiane par grille", y = "Rich. variance par grille")+
+  main_theme
+
+```
+
+
+### Richess par quadra regroupé en fonction de leur médiane
+
+```{r}
+
+richness_df%>%
+  mutate(quadra_code = factor(quadra_code, levels = order_quadra))%>%
+  ggplot()+
+  facet_wrap(~richness_med)+
+  geom_boxplot(aes(quadra_code, richness), outliers = F)+
+  geom_jitter(aes(quadra_code, richness),width = 0.1, height = 0.05)+
+  main_theme
+# variance par groupe de médiane
+richness_df%>%group_by(richness_med)%>%
+  summarise(richness_var_by_med = var(richness))
+  
+```
+
+### Variance en fonction de moyenne ou mediane par quadra
+La variance de richesse virale augment quand la richesse virale augmente au niveaux des quadrats
+```{r}
+# variance par grille
+richness_df%>%group_by(quadra_code)%>%
+  summarise(richness_var_by_quad = var(richness),
+            richness_med_by_quad = median(richness))%>%
+  ggplot()+
+  geom_point(aes(richness_med_by_quad, richness_var_by_quad))+
+  labs(x = "Rich. médiane par quadrat", y = "Rich. variance par quadra")+
+  main_theme
+richness_df%>%group_by(quadra_code)%>%
+  summarise(richness_var_by_quad = var(richness),
+            richness_moy_by_quad = mean(richness))%>%
+  ggplot()+
+  geom_point(aes(richness_moy_by_quad, richness_var_by_quad))+
+  labs(x = "Rich. moyenne par quadrat", y = "Rich. variance par quadra")+
+  main_theme
+```
+
+# Inext au niveaux des grilles
+
+```{r}
+read_xlsx("data/S1_Analyse_20CAM.xlsx") %>%
+  dplyr::select(Host_code, Grid_code, Species) %>%
+  distinct() %>%
+  mutate(Presence = 1) %>%
+  group_by(Grid_code, Species) %>%
+  mutate(weight = sum(Presence)) %>%
+  ungroup() %>%
+  dplyr::select(-Presence, -Host_code) %>%
+  distinct() %>%
+  pivot_wider(names_from = Grid_code, values_from = weight, values_fill
+              = 0) %>%
+  filter(!is.na(Species)) %>%
+  column_to_rownames("Species") -> viral_counts
+
+read_xlsx("data/S1_Analyse_20CAM.xlsx") %>%
+  dplyr::select(Host_code, Grid_code) %>%
+  distinct() %>%
+  dplyr::filter(Grid_code %in% colnames(viral_counts)) %>%
+  count(Grid_code) %>%
+  column_to_rownames("Grid_code") %>%
+  t()  -> offset_list
+
+inext_formatted_data <- rbind.data.frame(offset_list,viral_counts)
+
+z <- iNEXT(as.matrix(inext_formatted_data), q = 0, datatype =
+             "incidence_freq")
+
+z$iNextEst$size_based %>% 
+  filter(Order.q==0) %>% 
+  mutate(qD_obs = if_else(Method == "Observed", qD, NA),
+         qD_rar = if_else(Method == "Extrapolation", NA, qD),
+         qD_ext = if_else(Method == "Rarefaction", NA, qD)) %>% 
+  ggplot(., aes(x = t, y = qD, group = Assemblage))+
+  geom_point(aes(x = t, y = qD_obs)) +
+  geom_line(aes(x = t, y = qD_rar, group = Assemblage), linewidth = 0.5) +
+  geom_line(aes(x = t, y = qD_ext, group = Assemblage), linetype = 2, linewidth = 0.5)+
+  geom_ribbon(aes(ymin=qD.LCL, ymax=qD.UCL), alpha = 0.05, linetype = 0)+
+  ylab("Virus richness")+
+  xlab("Sample size")+
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(size = 15, face = "bold"),
+    axis.title.y = element_text(size = 15, face = "bold"),
+    legend.title = element_text(size=12, face="bold"),
+    legend.text = element_text(size=12, face="italic")
+  )
+
+z$iNextEst$coverage_based %>% 
+  filter(Order.q==0) %>% 
+  mutate(qD_obs = if_else(Method == "Observed", qD, NA),
+         qD_rar = if_else(Method == "Extrapolation", NA, qD),
+         qD_ext = if_else(Method == "Rarefaction", NA, qD)) %>% 
+  ggplot(., aes(x = SC, y = qD, group = Assemblage))+
+  geom_point(aes(x = SC, y = qD_obs)) +
+  geom_line(aes(x = SC, y = qD_rar, group = Assemblage), linewidth = 0.5) +
+  geom_line(aes(x = SC, y = qD_ext, group = Assemblage), linetype = 2, linewidth = 0.5)+
+  geom_ribbon(aes(ymin=qD.LCL, ymax=qD.UCL), alpha = 0.05, linetype = 0)+
+  ylab("Virus richness")+
+  xlab("Sample size")+
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(size = 15, face = "bold"),
+    axis.title.y = element_text(size = 15, face = "bold"),
+    legend.title = element_text(size=12, face="bold"),
+    legend.text = element_text(size=12, face="italic")
+  )
+```
+
+# Plus détailles
+```{r}
+
+otu_virus%>%
+  mutate( quadra_code = str_extract(Host_code, ".._CAM_...."))%>%
+  group_by(quadra_code) %>%
+  summarise_if(is.numeric, sum)%>%
+  column_to_rownames("quadra_code") -> OUT_virus_quad_binary_df
+OUT_virus_quad_binary_df%>%
+  as.data.frame()%>%
+  rownames_to_column("quadra_code")%>%
+  mutate(Grid_code = str_extract(quadra_code, ".._CAM_.."))%>%
+  pivot_longer(-c(Grid_code,quadra_code))%>%
+  filter(value %in% c(0,1,2,3,4,5))%>%
+  group_by(Grid_code)%>%
+  mutate(n_sp_grid = n_distinct(name))%>%
+  ungroup()%>%
+  filter(value %in% c(0,1,2,3,4,5))%>%
+  group_by(quadra_code, value)%>%
+  summarise(prop_value = n()/n_sp_grid,
+            n_sp_grid = n_sp_grid,
+            quadra_code = unique(quadra_code),
+            Grid_code = unique(Grid_code))%>%
+  distinct()%>%
+  mutate(Grid_code = str_extract(quadra_code, ".._CAM_.."))-> temp
+  
+temp%>%group_by(Grid_code)%>%summarise(n_grid = unique(n_sp_grid))
+library(RColorBrewer)
+ggplot(temp)+
+  facet_wrap(~Grid_code)+
+  geom_col(aes(quadra_code,prop_value,fill = as.factor(value)))+
+  scale_fill_manual(values = c("gray","lightblue", "blue", "darkblue", "orange","pink"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1, size = 4, face="italic"))
+  
+
+```
+
+# Monte Carlo simulation at quadra level
+
+```{r}
+n_simu = 10000
+matrix(data = NA, ncol = 45, nrow = n_simu) -> richness_sim
+prob_of_beta_error <- runif(n_simu,min = 0, max = 0.5) # Probabilité de détécté un virus alors qu'il n'est pas présent.
+prob_of_alpha_error <- runif(n_simu,min = 0, max = 0.5)# Probabilité de ne pas détécté un virus alors qu'il est présent.
+plot(0:5, dbinom(0:5, 5, 0.9))
+for(n_sim in 1: n_simu){
+
+# probabilité que les occurances soient toutes fausses sachant un taux d'erreur beta
+apply(as.matrix(OUT_virus_quad_binary_df),1:2, function(x)ifelse(x==0,NA,dbinom(x, x, prob_of_beta_error[n_sim])))  -> beta_error_p_val#prod(sapply(0:x,
+                                                                  #function(y) dbinom(y, x, prob_of_beta_error[n_sim]))))) -> beta_error_p_val
+
+# probabilité que les absences soient toutes fausses sachant un taux d'erreur alpha 
+apply(-(as.matrix(OUT_virus_quad_binary_df)-5),1:2, function(x)ifelse(x==0,NA,dbinom(x, x, prob_of_alpha_error[n_sim])))  -> alpha_error_p_val
+
+confidence_community_matrix_beta <- beta_error_p_val<0.05 # Probabilité de détécté un virus alors qu'il n'est pas présent inferieur à 0.05.
+confidence_community_matrix_beta[is.na(confidence_community_matrix_beta)] = F
+confidence_community_matrix_alpha = alpha_error_p_val < 0.05 # Probabilité de ne pas détécté un virus alors qu'il est présent inferieur à 0.05.
+confidence_community_matrix_alpha[is.na(confidence_community_matrix_alpha)] = F
+
+confidence_community_matrix = confidence_community_matrix_beta & confidence_community_matrix_alpha
+
+rowSums(confidence_community_matrix_beta,na.rm = T) -> richness_sim[n_sim, ]
+
+}
+rownames(OUT_virus_quad_binary_df) -> colnames (richness_sim)
+
+richness_sim%>%
+  as.data.frame%>%
+  mutate(n_sim = 1:n_simu,
+         prob_of_beta_error = prob_of_beta_error,
+         prob_of_alpha_error = prob_of_alpha_error)%>%
+  pivot_longer(-c(n_sim,prob_of_beta_error,prob_of_alpha_error), values_to = "richness_esti", names_to = "quadra_code")-> df_monte_carlo_sim
+
+ggplot(df_monte_carlo_sim)+
+  facet_wrap(~quadra_code)+
+  geom_point(aes(n_sim, richness_esti))+
+  labs(x = "Nombre de simulation", y ="Richesse")
+
+ggplot(df_monte_carlo_sim)+
+  facet_wrap(~quadra_code)+
+  geom_point(aes(prob_of_beta_error, richness_esti))+
+labs(x = "Taux d'erreur beta", y ="Richesse")
+
+ggplot(df_monte_carlo_sim)+
+  facet_wrap(~quadra_code)+
+  geom_point(aes(prob_of_alpha_error, richness_esti))+
+  labs(x = "Taux d'erreur alpha", y ="Richesse")
+
+df_monte_carlo_sim%>%
+  group_by(quadra_code)%>%
+  summarise(mean_richness = mean(richness_esti),
+            richness_sup = mean_richness+sd(richness_esti),
+            richness_inf = mean_richness-sd(richness_esti))%>%
+  ggplot()+
+  geom_point(aes(quadra_code, mean_richness))+
+  geom_errorbar(aes(quadra_code, mean_richness, ymin = richness_inf, ymax = richness_sup))+
+  geom_hline(yintercept  = 0, col = "red", linetype = 2)+
+  main_theme
+  
+```
+# Monte Carlo simulation at quadra level
+
+```{r}
+read_xlsx("data/S1_Analyse_20CAM.xlsx") %>%
+  dplyr::select(Host_code, Grid_code, Species) %>%
+  distinct() %>%
+  mutate(Presence = 1) %>%
+  group_by(Grid_code, Species) %>%
+  mutate(weight = sum(Presence)) %>%
+  ungroup() %>%
+  dplyr::select(-Presence, -Host_code) %>%
+  distinct() %>%
+  pivot_wider(names_from = Grid_code, values_from = weight, values_fill
+              = 0) %>%
+  filter(!is.na(Species)) %>%
+  column_to_rownames("Species")%>%
+  t()-> OUT_virus_grid_binary_df
+
+n_simu = 10000
+matrix(data = NA, ncol = 5, nrow = n_simu) -> richness_sim_grid
+prob_of_beta_error <- runif(n_simu,min = 0, max = 0.5) # Probabilité de détécté un virus alors qu'il n'est pas présent.
+prob_of_alpha_error <- runif(n_simu,min = 0, max = 0.5)# Probabilité de ne pas détécté un virus alors qu'il est présent.
+
+for(n_sim in 1: n_simu){
+
+# probabilité que les occurances soient toutes fausses sachant un taux d'erreur beta
+apply(as.matrix(OUT_virus_grid_binary_df),1:2, function(x)ifelse(x==0,NA,dbinom(x, x, prob_of_beta_error[n_sim])))  -> beta_error_p_val#prod(sapply(0:x,
+                                                                  #function(y) dbinom(y, x, prob_of_beta_error[n_sim]))))) -> beta_error_p_val
+
+# probabilité que les absences soient toutes fausses sachant un taux d'erreur alpha
+apply(-(as.matrix(OUT_virus_grid_binary_df)-9*5),1:2, function(x)ifelse(x==0,NA,dbinom(x, x, prob_of_alpha_error[n_sim])))  -> alpha_error_p_val
+
+confidence_community_matrix_beta <- beta_error_p_val<0.05 # Probabilité de détécté un virus alors qu'il n'est pas présent inferieur à 0.05.
+confidence_community_matrix_beta[is.na(confidence_community_matrix_beta)] = F
+
+confidence_community_matrix_alpha = alpha_error_p_val < 0.05 # Probabilité de ne pas détécté un virus alors qu'il est présent inferieur à 0.05.
+confidence_community_matrix_alpha[is.na(confidence_community_matrix_alpha)] = F
+
+confidence_community_matrix = confidence_community_matrix_beta & confidence_community_matrix_alpha
+
+rowSums(confidence_community_matrix_beta,na.rm = T) -> richness_sim_grid[n_sim, ]
+
+}
+rownames(OUT_virus_grid_binary_df) -> colnames (richness_sim_grid)
+
+richness_sim_grid%>%
+  as.data.frame%>%
+  mutate(n_sim = 1:n_simu,
+         prob_of_beta_error = prob_of_beta_error,
+         prob_of_alpha_error = prob_of_alpha_error)%>%
+  pivot_longer(-c(n_sim,prob_of_beta_error,prob_of_alpha_error), values_to = "richness_esti", names_to = "Grid_code")-> df_monte_carlo_sim_grid
+
+ggplot(df_monte_carlo_sim_grid)+
+  facet_wrap(~Grid_code)+
+  geom_point(aes(n_sim, richness_esti))+
+  labs(x = "Nombre de simulation", y ="Richesse")
+
+ggplot(df_monte_carlo_sim_grid)+
+  facet_wrap(~Grid_code)+
+  geom_point(aes(prob_of_beta_error, richness_esti))+
+labs(x = "Taux d'erreur beta", y ="Richesse")
+
+ggplot(df_monte_carlo_sim_grid)+
+  facet_wrap(~Grid_code)+
+  geom_point(aes(prob_of_alpha_error, richness_esti))+
+  labs(x = "Taux d'erreur alpha", y ="Richesse")
+
+df_monte_carlo_sim_grid%>%
+  group_by(Grid_code)%>%
+  summarise(mean_richness = mean(richness_esti),
+            richness_sup = mean_richness+sd(richness_esti),
+            richness_inf = mean_richness-sd(richness_esti))%>%
+  ggplot()+
+  geom_point(aes(Grid_code, mean_richness))+
+  geom_errorbar(aes(Grid_code, mean_richness, ymin = richness_inf, ymax = richness_sup))+
+  geom_hline(yintercept  = 0, col = "red", linetype = 2)+
+  main_theme
+  
+```
+

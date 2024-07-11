@@ -80,7 +80,7 @@ st_read("data/shapefiles/sql_statement_d551600.shp")  %>%
   pivot_wider(names_from = lib2, values_from = n, values_fill = 0)-> soil_occup
 
 # Arrange the map ----
-## Change positions of grids to lambert projection (for siland package) ----
+## Change positions of grids to Lambert projection (for siland package) ----
 metadata_grid%>%
   st_as_sf(coords = c("X", "Y"), crs = 4326)%>%
   st_transform(grid_pos_metadata, crs = st_crs(soil_occup))%>%
@@ -227,6 +227,7 @@ area_per_buffer%>%
   select(class, perc_area, Grid_code,buffer_size)%>%
   pivot_wider(names_from = class, values_from = perc_area, values_fill = 0) -> area_per_buffer_wide 
 
+#add columns only if they are not present in the df (avoid duplicated columns)
 if(any(colnames( read.table("data/data_clean/Metadata_grid_CAM.txt", header = T))%in%c("wetland", "natural_landscape", "non_emitting", "cultivated", "artificial"))){
   cat("Metadata already contain landscapes covers values")
 }else{

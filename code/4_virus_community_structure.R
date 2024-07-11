@@ -63,7 +63,7 @@ otu_virus_grid%>%
 
 # SBM virus ----
 
-if(!any(colnames(metadata_grid) %in% "sbm_virus")){
+if(!any(colnames(metadata_grid) %in% "sbm_virus")){ #add the column only if it is not present in the df (avoid duplicated column)
   sbm_virus <-otu_virus_grid%>%
     as.matrix() %>%
     estimateBipartiteSBM(
@@ -100,18 +100,8 @@ data.frame(sbm_plant = unique(B$sbm_plant),
            col_plant = brewer.pal(7, "Set1")) -> col_cluster_plant
 data.frame(sbm_virus = unique(B$sbm_virus),
            col_virus = brewer.pal(4, "Set2")) -> col_cluster_virus
-# palette_env = watlington(13)[3:13]
-# data.frame(soil = unique(B$soil),
-#            col_soil = palette_env[8:11]) -> col_cluster_soil
-# data.frame(land_use = unique(B$land_use),
-#            col_land_use = palette_env[1:4]) -> col_cluster_land_use
-# data.frame(landscp = unique(B$landscp),
-#            col_landscape = palette_env[5:7]) -> col_cluster_landscp
 
 B%>%
-  # left_join(col_cluster_soil, by = "soil")%>%
-  # left_join(col_cluster_land_use, by = "land_use")%>%
-  # left_join(col_cluster_landscp, by = "landscp")%>%
   left_join(col_cluster_virus, by = "sbm_virus")%>%
   left_join(col_cluster_plant, by = "sbm_plant")-> B
 
@@ -123,6 +113,7 @@ B%>%
 
 B$sbm_plant <- factor(B$sbm_plant, levels = c("5", "3", "2","1", "4","6","7"))
 B$sbm_virus <- factor(B$sbm_virus, levels = c("2", "1", "3", "4"))
+
 B$landscp <- factor(B$landscp, levels = c( "(1) Cultivés\n  dominant+\n Anthropisés",
   "(3) Mixtes", "(2) Naturels\n  non Humide\n dominant","(4) Naturels\n  Humide\n dominant"))
 colnames(B)[ c(4,2,5)] = c("Paysage", "Végétale", "Virale")

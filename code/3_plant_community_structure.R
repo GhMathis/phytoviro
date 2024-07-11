@@ -168,7 +168,7 @@ plantsp_df %>%
   knitr::kable()
 ## Aluvial plot ----
 
-if(!any(colnames(metadata_grid) %in% "clust_smb_grid_plant")){
+if(!any(colnames(metadata_grid) %in% "clust_smb_grid_plant")){ #add the column only if it is not present in the df (avoid duplicated column)
   metadata_grid%>%
     left_join(alluvial_site_df%>%dplyr::select(Grid_code, clust_smb_grid_plant), by ="Grid_code")%>%
     write.table("data/data_clean/Metadata_grid_CAM.txt")

@@ -13,7 +13,7 @@ library(sbm)
 
 # Load data and setup function ----
 read.table("data/data_clean/Metadata_grid_CAM.txt", header  = T)-> metadata_grid
-
+str(metadata_grid)
 main_theme = theme_minimal()+
   theme(line = element_blank(), 
         axis.line = element_line(colour = "black"),
@@ -185,7 +185,7 @@ landscp_only%>%
 
 ggpairs(landscp_only)
 
-#clustering
+## clustering
 landscp_only_named = landscp_only
 colnames(landscp_only_named) = c("Antropized", "Cultivated", "Natural non-wet",
                                  "No propagules emitter", "Natural\n wet")
@@ -248,9 +248,8 @@ land_use_only%>%
   dplyr::select(Fauche,Pature)%>%
   table()
 
-##### Soil sbm
+# Soil sbm ----
 
-#####
 NMI(sbm_soil,clust_landscp)
 NMI(sbm_soil,clust_land_use)
 NMI(clust_landscp,clust_land_use)
@@ -276,7 +275,7 @@ alluvial(freq_df[, c(1, 2, 3)],
                          freq_df$sbm_soil == 3 ~ col_clust[3],
                          .default = col_clust[4]))
 
-if(any(colnames(metadata_grid)%in%c("clust_landscp", "clust_land_use", "sbm_soil"))){
+if(any(colnames(metadata_grid)%in%c("clust_landscp", "clust_land_use", "sbm_soil"))){#add columns only if they are not present in the df (avoid duplicated columns)
   cat("Metadata already contain classifications")
 }else{
   metadata_grid%>%
